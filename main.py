@@ -1,4 +1,3 @@
-
 import csv
 from pathlib import Path
 from collections import deque
@@ -42,7 +41,6 @@ def load_maze(filename):
 def solve_maze(maze, start, exit_position):
     n = len(maze)
 
-    # Each state is (row, column, keys_collected)
     start_state = (start[0], start[1], 0)
 
     queue = deque([(start_state, 0)])
@@ -60,7 +58,6 @@ def solve_maze(maze, start, exit_position):
         state, distance = queue.popleft()
         r, c, keys = state
 
-        # Have we reached the exit?
         if (r, c) == exit_position:
             path = []
 
@@ -71,29 +68,24 @@ def solve_maze(maze, start, exit_position):
             path.reverse()
             return distance, path
 
-        # Explore the four neighbouring cells
         for dr, dc in directions:
             nr = r + dr
             nc = c + dc
 
-            # Reject moves outside the grid
             if not (0 <= nr < n and 0 <= nc < n):
                 continue
 
             cell = maze[nr][nc]
 
-            # Walls cannot be entered
             if cell == "#":
                 continue
 
             new_keys = keys
 
-            # Collect a key: a=0, b=1, ..., f=5
             if cell in "abcdef":
                 key_index = ord(cell) - ord("a")
                 new_keys |= (1 << key_index)
 
-            # A door requires its matching key
             if cell in "ABCDEF":
                 key_index = ord(cell) - ord("A")
 
@@ -109,23 +101,18 @@ def solve_maze(maze, start, exit_position):
             parent[next_state] = state
             queue.append((next_state, distance + 1))
 
-    # No valid path exists
     return -1, []
 
 
 def save_solution_csv(maze, path, output_file):
-    # Make a copy so the original maze remains unchanged
     solved_maze = [row[:] for row in maze]
 
-    # Mark the shortest path with x
     for r, c in path:
         if solved_maze[r][c] == ".":
             solved_maze[r][c] = "x"
 
-    # Create the output folder if it does not exist
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
-    # Write the solved maze to a CSV file
     with open(
         output_file, "w", newline="", encoding="utf-8"
     ) as file:
@@ -155,10 +142,8 @@ def generate_maze(n=15, key_count=3, seed=None):
 
     rng = random.Random(seed)
 
-    # Begin with a grid full of walls
     maze = [["#" for _ in range(n)] for _ in range(n)]
 
-    # Build a winding corridor through alternating rows
     route = []
 
     for r in range(0, n, 2):
@@ -168,7 +153,6 @@ def generate_maze(n=15, key_count=3, seed=None):
             maze[r][c] = "."
             route.append((r, c))
 
-        # Connect this row to the next row
         if r + 1 < n:
             connector_c = n - 1 if (r // 2) % 2 == 0 else 0
             maze[r + 1][connector_c] = "."
@@ -180,7 +164,6 @@ def generate_maze(n=15, key_count=3, seed=None):
     maze[start[0]][start[1]] = "S"
     maze[exit_position[0]][exit_position[1]] = "X"
 
-        # Place keys and matching doors in route order.
     available = route[1:-1]
     spacing = len(available) // (2 * key_count + 1)
 
@@ -194,8 +177,6 @@ def generate_maze(n=15, key_count=3, seed=None):
         maze[key_pos[0]][key_pos[1]] = key_letter
         maze[door_pos[0]][door_pos[1]] = door_letter
 
-    # Open a few additional cells to vary the maze.
-    # Never overwrite the guaranteed route.
     route_set = set(route)
 
     for r in range(n):
@@ -253,7 +234,6 @@ def visualize_maze(maze, path):
     small_font = pygame.font.SysFont("Arial", 16)
     title_font = pygame.font.SysFont("Arial", 23, bold=True)
 
-    # Colors
     BACKGROUND = (238, 242, 247)
     WHITE = (255, 255, 255)
     BLACK = (38, 38, 42)
@@ -275,7 +255,6 @@ def visualize_maze(maze, path):
         "f": (145, 190, 255),
     }
 
-    # E is reserved for the exit in the current input format.
     exit_position = next(
         (
             (r, c)
@@ -286,7 +265,6 @@ def visualize_maze(maze, path):
         None,
     )
 
-    # Animation state
     step = 0
     paused = False
     delay_ms = 250
@@ -294,7 +272,6 @@ def visualize_maze(maze, path):
     finished = len(path) <= 1
     running = True
 
-    # Show the full path from the beginning.
     full_path = set(path)
 
     def draw_text(text, x, y, selected_font, color=TEXT_COLOR):
@@ -321,7 +298,6 @@ def visualize_maze(maze, path):
         traversed = set(path[:step + 1])
         current_position = path[step] if path else None
 
-        # Draw the maze grid
         for r in range(n):
             for c in range(n):
                 cell = maze[r][c]
@@ -351,8 +327,7 @@ def visualize_maze(maze, path):
                         color = pair_colors[cell]
 
                 elif cell in "ABCDEF":
-                    # These door symbols are unambiguous
-                    # under the current E=exit convention.
+
                     key = cell.lower()
 
                     if key in inventory:
@@ -361,12 +336,9 @@ def visualize_maze(maze, path):
                     else:
                         color = pair_colors[key]
 
-                # Highlight the full path underneath
-                # the cell's original identity.
                 if (r, c) in full_path and cell == ".":
                     color = PATH_COLOR
 
-                # Highlight cells already traversed.
                 if (r, c) in traversed and cell == ".":
                     color = VISITED_COLOR
 
@@ -402,7 +374,6 @@ def visualize_maze(maze, path):
                         ),
                     )
 
-        # Draw the moving player
         if current_position is not None:
             r, c = current_position
 
@@ -418,7 +389,6 @@ def visualize_maze(maze, path):
                 max(5, cell_size // 4),
             )
 
-        # Draw the control and inventory panel
         draw_text(
             "MAZE SOLVER",
             panel_x,
@@ -560,7 +530,6 @@ def visualize_maze(maze, path):
                 ):
                     delay_ms = min(1000, delay_ms + 40)
 
-        # Advance automatically unless paused or finished.
         if path and not paused and not finished:
             elapsed_ms += elapsed
 
@@ -625,7 +594,6 @@ if __name__ == "__main__":
         print("Invalid choice. Enter 1 or 2.")
         raise SystemExit(1)
 
-    # Solve the selected maze
     distance, path = solve_maze(maze, start, exit_position)
 
     if distance == -1:
